@@ -20,15 +20,17 @@ func Unsubscribe(event string, listener Listener) {
 }
 
 // Notify listeners about event
-func Notify(event string, data ...interface{}) {
+func Notify(event string, data interface{}) {
 	initBusIfNoBus()
 	bus.Notify(event, data)
 }
 
 func initBusIfNoBus() {
-	mux.Lock()
 	if bus == nil {
-		bus = NewBus(defaultCapacity)
+		mux.Lock()
+		if bus == nil {
+			bus = NewBus(defaultCapacity)
+		}
+		mux.Unlock()
 	}
-	mux.Unlock()
 }

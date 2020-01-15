@@ -4,7 +4,7 @@ import "sync"
 
 // Listener interface to listen for events
 type Listener interface {
-	notify(event interface{})
+	Notify(interface{})
 }
 
 type event struct {
@@ -33,7 +33,17 @@ func NewBus(cap int) *Bus {
 // Subscribe listener to event
 func (b *Bus) Subscribe(event string, listener Listener) {
 	b.mux.Lock()
-	b.listeners[event] = append(b.listeners[event], listener)
+	found := false
+	for _, l := range b.listeners[event] {
+		if l == listener {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		b.listeners[event] = append(b.listeners[event], listener)
+	}
 	b.mux.Unlock()
 }
 
@@ -54,7 +64,7 @@ func (b *Bus) Unsubscribe(event string, listener Listener) {
 }
 
 // Notify listeners about event
-func (b *Bus) Notify(eventName string, data ...interface{}) {
+func (b *Bus) Notify(eventName string, data interface{}) {
 	b.channel <- event{name: eventName, data: data}
 }
 
@@ -63,15 +73,13 @@ func (b *Bus) listenToEvents() {
 		listeners := []Listener{}
 
 		b.mux.Lock()
-		origListeners, ok := b.listeners[event.name]
-		if ok {
-			listeners = make([]Listener, len(origListeners))
-			copy(listeners, origListeners)
+		for _, listener := range b.listeners[event.name] {
+			listeners = append(listeners, listener)
 		}
 		b.mux.Unlock()
 
 		for _, listener := range listeners {
-			listener.notify(event.data)
+			listener.Notify(event.data)
 		}
 	}
 }
